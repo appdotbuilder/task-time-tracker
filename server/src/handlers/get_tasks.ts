@@ -1,9 +1,19 @@
 
+import { db } from '../db';
+import { tasksTable } from '../db/schema';
 import { type Task } from '../schema';
+import { desc } from 'drizzle-orm';
 
 export const getTasks = async (): Promise<Task[]> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all tasks from the database.
-    // Should return all tasks ordered by created_at descending.
-    return [];
+  try {
+    const results = await db.select()
+      .from(tasksTable)
+      .orderBy(desc(tasksTable.created_at))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to fetch tasks:', error);
+    throw error;
+  }
 };

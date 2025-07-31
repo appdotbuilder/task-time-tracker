@@ -1,18 +1,47 @@
 
+import { db } from '../db';
+import { tasksTable, timeEntriesTable } from '../db/schema';
 import { type AddTimeInput, type Task } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const addTime = async (input: AddTimeInput): Promise<Task> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is adding time to a task by:
-    // 1. Creating a new time entry record
-    // 2. Updating the task's total_time_minutes by adding the new minutes
-    // 3. Updating the task's updated_at timestamp
-    // 4. Returning the updated task
-    return Promise.resolve({
-        id: input.task_id,
-        description: "Task with added time",
-        total_time_minutes: input.minutes,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Task);
+  try {
+    // Start a transaction to ensure both operations succeed or fail together
+    const result = await db.transaction(async (tx) => {
+      // First, verify the task exists and get current total
+      const existingTask = await tx.select()
+        .from(tasksTable)
+        .where(eq(tasksTable.id, input.task_id))
+        .execute();
+
+      if (existingTask.length === 0) {
+        throw new Error(`Task with id ${input.task_id} not found`);
+      }
+
+      // Create the time entry record
+      await tx.insert(timeEntriesTable)
+        .values({
+          task_id: input.task_id,
+          minutes: input.minutes
+        })
+        .execute();
+
+      // Update the task's total time and updated_at timestamp
+      const updatedTask = await tx.update(tasksTable)
+        .set({
+          total_time_minutes: existingTask[0].total_time_minutes + input.minutes,
+          updated_at: new Date()
+        })
+        .where(eq(tasksTable.id, input.task_id))
+        .returning()
+        .execute();
+
+      return updatedTask[0];
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Add time operation failed:', error);
+    throw error;
+  }
 };

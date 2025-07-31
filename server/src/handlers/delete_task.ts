@@ -1,9 +1,20 @@
 
+import { db } from '../db';
+import { tasksTable } from '../db/schema';
 import { type DeleteTaskInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const deleteTask = async (input: DeleteTaskInput): Promise<{ success: boolean }> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is deleting a task and all its associated time entries from the database.
-    // Should use CASCADE delete to remove all related time entries automatically.
-    return Promise.resolve({ success: true });
+  try {
+    // Delete the task - CASCADE will automatically delete related time entries
+    const result = await db.delete(tasksTable)
+      .where(eq(tasksTable.id, input.id))
+      .execute();
+
+    // Check if any rows were affected (task existed and was deleted)
+    return { success: (result.rowCount ?? 0) > 0 };
+  } catch (error) {
+    console.error('Task deletion failed:', error);
+    throw error;
+  }
 };

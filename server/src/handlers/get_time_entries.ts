@@ -1,9 +1,20 @@
 
+import { db } from '../db';
+import { timeEntriesTable } from '../db/schema';
 import { type TimeEntry } from '../schema';
+import { eq, desc } from 'drizzle-orm';
 
 export const getTimeEntries = async (taskId: number): Promise<TimeEntry[]> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all time entries for a specific task.
-    // Should return time entries ordered by created_at descending.
-    return [];
+  try {
+    const results = await db.select()
+      .from(timeEntriesTable)
+      .where(eq(timeEntriesTable.task_id, taskId))
+      .orderBy(desc(timeEntriesTable.created_at))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to get time entries:', error);
+    throw error;
+  }
 };
